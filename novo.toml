@@ -1,0 +1,44 @@
+[package]
+name        = "libonnxruntime-sys"
+version     = "0.1.0"
+description = "Bindings over libonnxruntime: the two plain C symbols the shared library exports — the API base that hands back the function table, and the CPU execution provider factory — one declaration each.  The rest of the ONNX Runtime C API is a table of function pointers and is not reachable through a linked symbol."
+license     = "Apache-2.0"
+
+# NOT a `0.0.x` draft.  An interface release is the shape whose every
+# `pub fn` body is a `todo()`, and every `pub fn` here is an `@ffi`
+# declaration with no body at all — `novo pkg publish` reads that as a
+# release with bodies and refuses a `0.0.x` version for it.
+stability   = "experimental"
+
+# `sys`: the layer for a package that binds one C library and decides
+# nothing of its own.  Every `pub fn` below is an `@ffi` declaration of
+# a function in the ONNX Runtime shared library.
+layer       = "sys"
+
+category    = "bindings"
+
+# The one C library.  `libonnxruntime.so` is what the loader resolves
+# these symbols against; installing this package does not install it.
+wraps       = "libonnxruntime"
+
+tags        = ["ffi", "onnx", "onnxruntime", "inference", "ml", "bindings"]
+repository  = "https://github.com/novolang/libonnxruntime-sys"
+maintainers = ["novo-lang"]
+novo        = ">= 0.8.9"
+
+[docs.pages]
+"README.md" = "The two exported C symbols of ONNX Runtime, and why there are only two"
+
+[dependencies]
+# None.  A binding over one C library depends on no novo-lang package.
+
+# The link flag for the `library = "onnxruntime"` name both declarations
+# in `src/` carry.  ONNX Runtime ships as a tarball holding the headers
+# and `libonnxruntime.so` and installs no pkg-config file, so there is
+# no `libonnxruntime.pc` to ask and the flag is written out.  The
+# default would be the same `-lonnxruntime`; the block is here so a
+# reader knows which flag to add a `-L` to, because the tarball is
+# unpacked wherever the reader put it rather than anywhere the linker
+# already looks.
+[ffi.onnxruntime]
+linker = "-lonnxruntime"

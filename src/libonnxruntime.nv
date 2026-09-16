@@ -1,0 +1,55 @@
+// The exported C symbols of ONNX Runtime, one novo-lang declaration
+// each.  There are two of them.
+//
+// ONNX Runtime does not expose its C API as symbols.  It exposes ONE
+// symbol, `OrtGetApiBase`, which answers the address of a structure of
+// two function pointers; the second of those, `GetApi`, answers the
+// address of the `OrtApi` structure, which holds every other call the
+// C API has — creating an environment, creating a session, building a
+// tensor, running inference, releasing anything — as a FIELD.  None of
+// them is a name the loader can resolve, so none of them can be an
+// `@ffi` declaration.
+//
+// The second symbol, `OrtSessionOptionsAppendExecutionProvider_CPU`, is
+// a plain C function in the CPU provider factory, and it is declared
+// here because it is a symbol.  It takes an `OrtSessionOptions`, which
+// is made by a field of the table, so nothing in this package can
+// produce an argument for it.
+//
+// A pointer is an `Int` and zero is null.  Reading a function pointer
+// out of the table is `ptr.read_word`; calling one is not something the
+// novo-lang foreign function interface does.  The README says what a
+// program that wants the runtime has to do instead.
+
+// Get the address of the `OrtApiBase` structure.
+//
+// This is the only entry point ONNX Runtime promises as a symbol, and
+// it never fails: the answer is the address of a structure the library
+// owns and never releases.
+//
+// The structure is two eight-byte function pointers, in this order.
+//
+// | Offset | Field | What it is |
+// | --- | --- | --- |
+// | 0 | `GetApi` | takes a version number, answers the address of the `OrtApi` table, or 0 when the library is older than the version asked for |
+// | 8 | `GetVersionString` | takes nothing, answers the address of a string such as `"1.17.3"` |
+//
+// Both are addresses of C functions, and neither is callable from
+// novo-lang. Read them with `ptr.read_word` to see that the library
+// loaded; to use them, see the README.
+pub @ffi(library = "onnxruntime", symbol = "OrtGetApiBase")
+fn ort_get_api_base() -> Int [ffi]
+
+// Add the CPU execution provider to a set of session options.
+//
+// `options` is an `OrtSessionOptions`, and `use_arena` is 1 to let the
+// provider keep an arena allocator or 0 to allocate each time.
+// Answers 0 on success, and otherwise the address of an `OrtStatus`
+// the caller must release through the table.
+//
+// This is the CPU provider factory's one exported symbol, declared in
+// `cpu_provider_factory.h`.  It is here because it is a symbol; it is
+// not usable on its own, because an `OrtSessionOptions` is made by
+// `CreateSessionOptions`, which is a field of the `OrtApi` table.
+pub @ffi(library = "onnxruntime", symbol = "OrtSessionOptionsAppendExecutionProvider_CPU")
+fn ort_session_options_append_execution_provider_cpu(options: Int, use_arena: Int) -> Int [io, ffi]
