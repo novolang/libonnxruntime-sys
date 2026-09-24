@@ -1,55 +1,69 @@
 // The exported C symbols of ONNX Runtime, one novo-lang declaration
 // each.  There are two of them.
 //
-// ONNX Runtime does not expose its C API as symbols.  It exposes ONE
-// symbol, `OrtGetApiBase`, which answers the address of a structure of
-// two function pointers; the second of those, `GetApi`, answers the
-// address of the `OrtApi` structure, which holds every other call the
-// C API has — creating an environment, creating a session, building a
-// tensor, running inference, releasing anything — as a FIELD.  None of
-// them is a name the loader can resolve, so none of them can be an
-// `@ffi` declaration.
+// ONNX Runtime exposes its C API through one symbol, `OrtGetApiBase`.
+// It answers the address of a structure of two function pointers.  The
+// first of those, `GetApi`, answers the address of the `OrtApi`
+// structure, which holds every other call of the C API as a field of
+// function-pointer type.  Creating an environment, creating a session,
+// building a tensor, running a model and releasing an object are all
+// fields.  None of them is a name the loader can resolve, so none of
+// them can be an `@ffi` declaration.
 //
-// The second symbol, `OrtSessionOptionsAppendExecutionProvider_CPU`, is
-// a plain C function in the CPU provider factory, and it is declared
-// here because it is a symbol.  It takes an `OrtSessionOptions`, which
-// is made by a field of the table, so nothing in this package can
-// produce an argument for it.
+// The second symbol, `OrtSessionOptionsAppendExecutionProvider_CPU`,
+// is a plain C function in the CPU provider factory, and it is
+// declared here because it is a symbol.  It takes an
+// `OrtSessionOptions`, which only a field of the table creates, so
+// nothing in this package can produce an argument for it.
 //
-// A pointer is an `Int` and zero is null.  Reading a function pointer
-// out of the table is `ptr.read_word`; calling one is not something the
-// novo-lang foreign function interface does.  The README says what a
-// program that wants the runtime has to do instead.
+// A pointer is an `Int` and zero is null.  `ptr.read_word` reads a
+// function pointer out of a structure.  The novo-lang foreign function
+// interface cannot call a function through its address.  The README
+// says what a program that wants to run a model has to do instead.
+//
+// The examples in these comments are fenced `novo ignore`, so `novo
+// doc` does not compile them.  A compiled example links against
+// libonnxruntime, and the link fails where that library is not
+// installed.
 
 // Get the address of the `OrtApiBase` structure.
 //
-// This is the only entry point ONNX Runtime promises as a symbol, and
-// it never fails: the answer is the address of a structure the library
-// owns and never releases.
+// This is the entry point of the C API.  The answer is the address of
+// a structure the library owns for as long as it is loaded, and there
+// is nothing to release.
 //
 // The structure is two eight-byte function pointers, in this order.
 //
 // | Offset | Field | What it is |
 // | --- | --- | --- |
-// | 0 | `GetApi` | takes a version number, answers the address of the `OrtApi` table, or 0 when the library is older than the version asked for |
-// | 8 | `GetVersionString` | takes nothing, answers the address of a string such as `"1.17.3"` |
+// | 0 | `GetApi` | takes a version number and answers the address of the `OrtApi` table, or 0 when the runtime does not support that version |
+// | 8 | `GetVersionString` | takes nothing and answers the address of a string such as `"1.17.3"` |
 //
-// Both are addresses of C functions, and neither is callable from
-// novo-lang. Read them with `ptr.read_word` to see that the library
-// loaded; to use them, see the README.
+// Both are addresses of C functions, and neither can be called from
+// novo-lang.  Reading them with `ptr.read_word` shows that the library
+// loaded.
+//
+// ```novo ignore
+// let base = libonnxruntime.ort_get_api_base()
+// let get_api = ptr.read_word(base)
+// ```
 pub @ffi(library = "onnxruntime", symbol = "OrtGetApiBase")
 fn ort_get_api_base() -> Int [ffi]
 
 // Add the CPU execution provider to a set of session options.
 //
-// `options` is an `OrtSessionOptions`, and `use_arena` is 1 to let the
-// provider keep an arena allocator or 0 to allocate each time.
-// Answers 0 on success, and otherwise the address of an `OrtStatus`
-// the caller must release through the table.
+// `options` is an `OrtSessionOptions`.  `use_arena` is non-zero to let
+// the provider use an arena allocator and 0 to allocate each time.
+// Answers 0 on success.  On failure it answers the address of an
+// `OrtStatus`, which the caller releases with `ReleaseStatus`, a field
+// of the table.
 //
-// This is the CPU provider factory's one exported symbol, declared in
-// `cpu_provider_factory.h`.  It is here because it is a symbol; it is
-// not usable on its own, because an `OrtSessionOptions` is made by
+// The function is declared in `cpu_provider_factory.h`.  It cannot be
+// used on its own, because an `OrtSessionOptions` is created by
 // `CreateSessionOptions`, which is a field of the `OrtApi` table.
+//
+// ```novo ignore
+// let status = libonnxruntime.ort_session_options_append_execution_provider_cpu(options, 1)
+// ```
 pub @ffi(library = "onnxruntime", symbol = "OrtSessionOptionsAppendExecutionProvider_CPU")
 fn ort_session_options_append_execution_provider_cpu(options: Int, use_arena: Int) -> Int [io, ffi]

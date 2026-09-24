@@ -1,18 +1,17 @@
-// API tests for the ONNX Runtime bindings.
+// The tests over the entry points of the ONNX Runtime bindings.
 //
 // Both tests below call into the C library, so the suite needs
 // libonnxruntime installed and linked.  `novo pkg build` type-checks
-// the declarations without it; `novo test` runs them and does not.
+// the declarations without it.  `novo test` runs them and does not.
 //
-// ONNX Runtime was not installed on the machine these tests were
-// written on, so the suite has never been linked.  Read every
-// assertion as a statement about the documented C API rather than as
-// an observation.
+// ONNX Runtime was not installed on the machines where these tests
+// were written and revised, so the suite has never been linked.  Every
+// assertion is a statement about the documented C API, not an
+// observation.
 //
 // The suite loads no model, reads and writes no file, and needs no
-// privileges.  There is little for it to do: the package has two entry
-// points because the shared library exports two symbols, and the first
-// test is the one that shows why.
+// privileges.  The package has two entry points because the shared
+// library exports two symbols, and the first test shows why.
 
 use std.test
 use libonnxruntime
@@ -25,20 +24,21 @@ const GET_VERSION_STRING: Int = 8
 @test
 fn test_the_api_base_hands_back_two_function_pointers() [io, ffi]
     test.case("OrtGetApiBase")
-    // The call never fails: the structure belongs to the library and
-    // lives as long as it is loaded.
+    // The structure belongs to the library and lives as long as it is
+    // loaded.
     let base = libonnxruntime.ort_get_api_base()
     test.assert(base != 0)
-    // Two fields, both function pointers, both set by the library.
+    // The structure holds two function pointers, both set by the
+    // library.
     let get_api = ptr.read_word(base)
     let get_version_string = ptr.read_word(base + GET_VERSION_STRING)
     test.assert(get_api != 0)
     test.assert(get_version_string != 0)
     test.assert(get_api != get_version_string)
-    // And that is the whole reach.  These two are addresses of C
-    // functions; `@ffi` resolves a named symbol at link time and has no
-    // way to call an address, so neither the version string nor the
-    // `OrtApi` table behind `GetApi` can be asked for from here.
+    // These two are addresses of C functions.  `@ffi` resolves a named
+    // symbol at link time and cannot call an address, so neither the
+    // version string nor the `OrtApi` table behind `GetApi` can be
+    // asked for from here.
     test.assert(get_api != base)
 
 @test
@@ -46,9 +46,9 @@ fn test_the_cpu_provider_factory_is_declared() [io, ffi]
     test.case("OrtSessionOptionsAppendExecutionProvider_CPU")
     // An `OrtSessionOptions` is made by `CreateSessionOptions`, which
     // is a field of the `OrtApi` table and not a symbol, so this
-    // package can never produce one.  The address stays null and the
-    // call below is never reached; the declaration is checked by the
-    // compiler and linked by the linker all the same.
+    // package cannot produce one.  The address stays null and the call
+    // below is never reached.  The compiler checks the declaration and
+    // the linker resolves it all the same.
     let options = 0
     test.assert(options == 0)
     if options != 0
