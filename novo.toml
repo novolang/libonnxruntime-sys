@@ -1,6 +1,6 @@
 [package]
 name        = "libonnxruntime-sys"
-version     = "0.1.1"
+version     = "0.1.2"
 description = "Bindings over libonnxruntime: the two plain C symbols the shared library exports — the API base that hands back the function table, and the CPU execution provider factory — one declaration each.  The rest of the ONNX Runtime C API is a table of function pointers and is not reachable through a linked symbol."
 license     = "Apache-2.0"
 
@@ -23,7 +23,7 @@ wraps       = "libonnxruntime"
 tags        = ["ffi", "onnx", "onnxruntime", "inference", "ml", "bindings"]
 repository  = "https://github.com/novolang/libonnxruntime-sys"
 maintainers = ["novo-lang"]
-novo        = ">= 0.8.9"
+novo        = ">= 0.23.0"
 
 [docs.pages]
 "README.md" = "The two exported C symbols of ONNX Runtime, and why there are only two"
